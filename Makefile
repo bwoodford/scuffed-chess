@@ -4,11 +4,11 @@
 CC = gcc
 
 # Compiler flags
-CFLAGS = -Wall -Wextra -std=c99
+CFLAGS = -Wall -Wextra -std=c99 -lm
 
 # SDL3 flags (using pkg-config)
-SDL_CFLAGS = $(shell pkg-config --cflags sdl3)
-SDL_LIBS = $(shell pkg-config --libs sdl3)
+SDL_CFLAGS = $(shell pkg-config --cflags sdl3 sdl3-image)
+SDL_LIBS = $(shell pkg-config --libs sdl3 sdl3-image)
 
 # Target executable
 TARGET = sdl3_window
@@ -31,17 +31,9 @@ clean:
 run: $(TARGET)
 	./$(TARGET)
 
-# Install SDL3 dependencies (Ubuntu/Debian)
-install-deps:
-	sudo apt update
-	sudo apt install libsdl3-dev pkg-config build-essential
-
-# Install SDL3 dependencies (Fedora/RHEL)
-install-deps-fedora:
-	sudo dnf install SDL3-devel pkgconfig gcc
-
 # Install SDL3 dependencies (Arch Linux)
 install-deps-arch:
 	sudo pacman -S sdl3 pkgconfig gcc
+	sudo yay -S sdl3_image
 
 .PHONY: all clean run install-deps install-deps-fedora install-deps-arch

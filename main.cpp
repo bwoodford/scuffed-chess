@@ -1,20 +1,22 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_events.h>
+#include <SDL3/SDL_iostream.h>
 #include <SDL3/SDL_keycode.h>
+#include <SDL3/SDL_video.h>
+#include <SDL3_image/SDL_image.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <math.h>
 
 typedef struct {
     SDL_FRect dest;
     SDL_Color color;
 } ColoredRect;
 
-const int BOARD_SQUARES = 64;
-
 typedef struct {
-    ColoredRect squares[BOARD_SQUARES];
-    int width;
-    int height;
+    ColoredRect squares[8][8];
+    SDL_FRect pieces[32];
+    SDL_FRect board_dim;
 } ChessBoard;
 
 ChessBoard board;
@@ -34,44 +36,51 @@ SDL_Texture* createTexture(SDL_Renderer* renderer) {
     return texture;
 }
 
-void initBoard() {
+void initBoard(SDL_Window* window) {
 
     int r = 255, g = 255, b = 255, a = 255;
 
     int squareWidth = 100, squareHeight = 100;
 
-    int row = 0;
+    int windowWidth, windowHeight;
+    int boardWidth = 800, boardHeight = 800;
 
-    for (int i = 0; i < BOARD_SQUARES; i++) {
+    // TODO: Add error check here
+    SDL_GetWindowSize(window, &windowWidth, &windowHeight);
 
-        row = i/8;
+    board.board_dim.h = boardHeight;
+    board.board_dim.w = boardWidth;
+    board.board_dim.x = (windowWidth/2) - (boardWidth/2);
+    board.board_dim.y = (windowHeight/2) - (boardHeight/2);
 
-        // Alternate colors between columns AND rows
-        if (((i + row) % 2) != 0) {
-            r = 0;
-            g = 0;
-            b = 0;
-            a = 255;
-        } else {
-            r = 255;
-            g = 255;
-            b = 255;
-            a = 255;
+    for (int row = 0; row < 8; row++) {
+        // j - column
+        for (int col = 0; col < 8; col++) {
+            // Alternate colors between columns AND rows
+            if (((row + col) % 2) != 0) {
+                r = 0;
+                g = 0;
+                b = 0;
+                a = 255;
+            } else {
+                r = 255;
+                g = 255;
+                b = 255;
+                a = 255;
+            }
+
+            board.squares[row][col].dest.x = squareWidth * col + board.board_dim.x;
+            board.squares[row][col].dest.y = squareHeight * row + board.board_dim.y;
+
+            board.squares[row][col].dest.w = squareWidth;
+            board.squares[row][col].dest.h = squareHeight;
+
+            board.squares[row][col].color.r = r;
+            board.squares[row][col].color.g = g;
+            board.squares[row][col].color.b = b;
+            board.squares[row][col].color.a = a;
         }
-
-        board.squares[i].dest.x = squareWidth * (i % 8);
-        board.squares[i].dest.y = squareHeight * row;
-        board.squares[i].dest.w = squareWidth;
-        board.squares[i].dest.h = squareHeight;
-        board.squares[i].color.r = r;
-        board.squares[i].color.g = g;
-        board.squares[i].color.b = b;
-        board.squares[i].color.a = a;
     }
-
-    board.width = 800;
-    board.height = 800;
-
 }
 
 int main(int argc, char* argv[]) {
@@ -118,7 +127,8 @@ int main(int argc, char* argv[]) {
     Uint64 last_time = SDL_GetTicks();
     int frame_count = 0;
 
-    initBoard();
+
+    SDL_Texture* sprite = SDL_CreateTextureFromSurface(renderer, IMG_LoadPNG_IO(SDL_IOFromFile("./assets/pieces/kingB.png", "r")));
 
     while (gaming) {
         // Handle events
@@ -127,6 +137,8 @@ int main(int argc, char* argv[]) {
                 case SDL_EVENT_WINDOW_RESIZED:
                     int width, height;
                     SDL_GetWindowSize(window, &width, &height);
+                    printf("width: %d, height: %d\n", width, height);
+                    initBoard(window);
                     break;
                 case SDL_EVENT_QUIT:
                     gaming = false;
@@ -144,10 +156,14 @@ int main(int argc, char* argv[]) {
         SDL_SetRenderDrawColor(renderer, 30, 144, 255, 255);
         SDL_RenderClear(renderer);
 
-        for (int i = 0; i < BOARD_SQUARES; i++) {
-            SDL_SetTextureColorMod(texture, board.squares[i].color.r, board.squares[i].color.g, board.squares[i].color.b);
-            SDL_SetTextureAlphaMod(texture, board.squares[i].color.a);
-            SDL_RenderTexture(renderer, texture, NULL, &board.squares[i].dest);
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                SDL_SetTextureColorMod(texture, board.squares[i][j].color.r, board.squares[i][j].color.g, board.squares[i][j].color.b);
+                SDL_SetTextureAlphaMod(texture, board.squares[i][j].color.a);
+                SDL_RenderTexture(renderer, texture, NULL, &board.squares[i][j].dest);
+
+                SDL_RenderTexture(renderer, sprite, NULL, &board.squares[i][j].dest);
+            }
         }
 
         SDL_RenderPresent(renderer);
